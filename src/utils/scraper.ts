@@ -4,48 +4,48 @@ const scrapeData = async (
   data: string[],
   scheme: Record<string, string | object>
 ) => {
-  data.forEach((element) => {
-    const $ = load(element);
+  const scrapedData: any[] = [];
+  data.forEach(async (element) => {
+    // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
 
-    console.log($(".EventTeams-styles-module-team-title").eq(0).text());
-    // for (const key in element) {
-    //   if (obj.hasOwnProperty(key)) {
-    //     const fullPath = path ? `${path}.${key}` : key;
-    //     if (typeof obj[key] === "object" && obj[key] !== null) {
-    //       // Recursive case for nested objects
-    //       iterateNestedProperties(obj[key], fullPath);
-    //     } else {
-    //       // Base case for non-object properties
-    //       console.log(
-    //         `${fullPath}: ${obj[key].includes("$") ? eval(obj[key]) : obj[key]}`
-    //       );
-    //     }
-    //   }
-    // }
-    // console.log(scheme);
+    const evaluatedData = await evaluateDollarExpressions(scheme, element);
+    console.log(evaluatedData);
+    scrapedData.push(evaluatedData);
+    // console.log(evaluateDollarExpressions(scheme));
   });
-  const scrapedData: Record<string, string> = {};
 
   // iterateNestedProperties(scheme);
-
+  // console.log(scrapedData);
   return scrapedData;
 };
 
-const iterateNestedProperties = (obj: Record<any, any>, path = "") => {
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      const fullPath = path ? `${path}.${key}` : key;
-      if (typeof obj[key] === "object" && obj[key] !== null) {
-        // Recursive case for nested objects
-        iterateNestedProperties(obj[key], fullPath);
-      } else {
-        // Base case for non-object properties
-        console.log(
-          `${fullPath}: ${obj[key].includes("$") ? eval(obj[key]) : obj[key]}`
-        );
-      }
+function evaluateDollarExpressions(
+  obj: Record<any, any> | string,
+  element: string
+) {
+  // If it's an object, we recursively handle each key-value pair
+  const $ = load(element);
+  // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
+  if (typeof obj === "object" && obj !== null) {
+    // const result: Record<any, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // console.log("before:", obj[key]);
+      obj[key] = evaluateDollarExpressions(value, element);
+      // console.log("after:", obj[key]);
+    }
+    return obj;
+  }
+  // If it's a string starting with a `$`, evaluate it using eval
+  if (typeof obj === "string" && obj.startsWith("$")) {
+    try {
+      return eval(obj);
+    } catch (e) {
+      console.error("Error evaluating:", obj, e);
+      return null;
     }
   }
-};
+  // Return the value as is if it's not something to evaluate
+  return obj;
+}
 
 export default scrapeData;

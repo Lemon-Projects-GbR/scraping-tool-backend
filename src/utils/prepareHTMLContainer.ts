@@ -1,4 +1,4 @@
-import { Page } from "puppeteer";
+// import { Page } from "puppeteer";
 import startCluster from "./browserCluster";
 
 /* TODO: if no selector is provided return the whole html */
