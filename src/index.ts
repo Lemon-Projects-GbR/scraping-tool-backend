@@ -1,39 +1,39 @@
-import express from "express";
-import "dotenv/config";
-import cors from "cors";
-import bodyParser from "body-parser";
+import express from 'express';
+import 'dotenv/config';
+import cors from 'cors';
+import bodyParser from 'body-parser';
 
-import prepareHTMLContainer from "./utils/prepareHTMLContainer";
-import scrapeData from "./utils/scraper";
-import { aiSearchHandler } from "./controllers/aiSearchController";
+import prepareHTMLContainer from './utils/prepareHTMLContainer';
+import scrapeData from './utils/scraper';
+import { aiSearchHandler } from './controllers/aiSearchController';
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(bodyParser.json());
 
-app.get("/", async (req, res) => {
+app.get('/', async (req, res) => {
   const data = await prepareHTMLContainer(
     [
-      "https://sports.tipico.de/de/alle/1101/42301",
-      "https://sports.tipico.de/de/alle/1101/41301",
+      'https://sports.tipico.de/de/alle/1101/42301',
+      'https://sports.tipico.de/de/alle/1101/41301',
     ],
-    ".SportsCompetitionsEvents-styles-module-competitions-events-block > .EventRow-styles-module-event-row"
+    '.SportsCompetitionsEvents-styles-module-competitions-events-block > .EventRow-styles-module-event-row',
   );
 
   const scheme = {
     //NOTE: alles ohne $() ist ein fester Wert
-    bookie: "tipico",
-    competition: { country: "GER", name: "Bundesliga" },
+    bookie: 'tipico',
+    competition: { country: 'GER', name: 'Bundesliga' },
     game: {
       link: "$('.EventTeams-styles-team-title').eq(0).text();",
-      date: "",
+      date: '',
       team1: "$('.EventTeams-styles-module-team-title').eq(0).text();",
       team2: "$('.EventTeams-styles-module-team-title').eq(1).text();",
       odds: {
-        team1: "",
-        draw: "",
-        team2: "",
+        team1: '',
+        draw: '',
+        team2: '',
       },
     },
   };
@@ -42,9 +42,14 @@ app.get("/", async (req, res) => {
   res.send(response);
 });
 
-app.post("/ai-search", async (req, res) => {
-  console.log(req.body);
-  // aiSearchHandler("https://remix.run/docs/en/main/guides/envvars", "body");
+app.post('/ai-search', async (req, res) => {
+  // console.log(req.body);
+  const aiSearchResults = await aiSearchHandler(
+    req.body.url,
+    'body',
+    req.body.prompt,
+  );
+  res.send(aiSearchResults);
 });
 
 app.listen(process.env.PORT, () => {
