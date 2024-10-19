@@ -1,15 +1,15 @@
-import express from "express";
-import "dotenv/config";
-import cors from "cors";
-import bodyParser from "body-parser";
+import express from 'express';
+import 'dotenv/config';
+import cors from 'cors';
+import bodyParser from 'body-parser';
 
-import prepareHTMLContainer from "./utils/prepareHTMLContainer";
-import scrapeData from "./utils/scraper";
-import { aiSearchHandler } from "./controllers/aiSearchController";
+import prepareHTMLContainer from './utils/prepareHTMLContainer';
+import scrapeData from './utils/scraper';
+import { aiSearchHandler } from './controllers/aiSearchController';
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(bodyParser.json());
 
 app.post("/", async (req, res) => {
@@ -43,9 +43,14 @@ app.post("/", async (req, res) => {
   // res.send(response);
 });
 
-app.post("/ai-search", async (req, res) => {
-  console.log(req.body);
-  // aiSearchHandler("https://remix.run/docs/en/main/guides/envvars", "body");
+app.post('/ai-search', async (req, res) => {
+  // console.log(req.body);
+  const aiSearchResults = await aiSearchHandler(
+    req.body.url,
+    'body',
+    req.body.prompt,
+  );
+  res.send(aiSearchResults);
 });
 
 app.listen(process.env.PORT, () => {
