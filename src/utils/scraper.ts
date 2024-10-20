@@ -1,50 +1,52 @@
-import { load } from "cheerio";
+import { load } from 'cheerio';
 
-const scrapeData = async (
+async function scrapeData(
   data: string[],
-  scheme: Record<string, string | object>
-) => {
-  const scrapedData: any[] = [];
-  data.forEach(async (element) => {
-    // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
-
-    const evaluatedData = await evaluateDollarExpressions(scheme, element);
-    console.log(evaluatedData);
-    scrapedData.push(evaluatedData);
-    // console.log(evaluateDollarExpressions(scheme));
-  });
-
-  // iterateNestedProperties(scheme);
-  // console.log(scrapedData);
-  return scrapedData;
-};
-
-function evaluateDollarExpressions(
-  obj: Record<any, any> | string,
-  element: string
+  scheme: Record<string, string | object>,
 ) {
-  // If it's an object, we recursively handle each key-value pair
+  const scrapedData: Record<string, string | object>[] = [];
+  data.forEach(async element => {
+    const evaluatedData = evaluateQueriesInScheme(scheme, element);
+    if (Array.isArray(evaluatedData)) {
+      scrapedData.push(...evaluatedData);
+    } else {
+      scrapedData.push(evaluatedData);
+    }
+  });
+  return scrapedData;
+}
+
+function evaluateQueriesInScheme(
+  obj: Record<string, any>, //any because the recursive object could be of any depth
+  element: string,
+): any {
   const $ = load(element);
-  // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
-  if (typeof obj === "object" && obj !== null) {
-    // const result: Record<any, any> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // console.log("before:", obj[key]);
-      obj[key] = evaluateDollarExpressions(value, element);
-      // console.log("after:", obj[key]);
+  for (const [key, value] of Object.entries(obj)) {
+    // If the value an object, recursively call the function to evaluate the nested object
+    if (typeof obj[key] !== 'string') {
+      evaluateQueriesInScheme(obj[key], element);
+    } else {
+      try {
+        let results;
+        if (obj[key].startsWith('$')) {
+          results = $(eval(obj[key]));
+        } else {
+          results = $(obj[key]);
+        }
+
+        if (results.toArray().length > 1) {
+          const resultsData: string[] = results.toArray().map(e => $(e).text());
+          obj[key] = resultsData;
+        } else {
+          obj[key] = results.text();
+        }
+      } catch (e: any) {
+        console.error('Error evaluating:', obj[key], e);
+        const errorMsg = e.message ? e.message : 'Unknown Error';
+        return { errorAttr: obj, errorMsg: errorMsg };
+      }
     }
-    return obj;
   }
-  // If it's a string starting with a `$`, evaluate it using eval
-  if (typeof obj === "string" && obj.startsWith("$")) {
-    try {
-      return eval(obj);
-    } catch (e) {
-      console.error("Error evaluating:", obj, e);
-      return null;
-    }
-  }
-  // Return the value as is if it's not something to evaluate
   return obj;
 }
 
