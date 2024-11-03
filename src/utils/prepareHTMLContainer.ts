@@ -26,10 +26,23 @@ async function prepareHTMLContainer(
       await page.addScriptTag({
         url: 'https://code.jquery.com/jquery-3.3.1.slim.min.js',
       });
-      await page.waitForSelector(containerSelector, { timeout: 0 });
+      await page.waitForFunction(`!!${containerSelector}`, { timeout: 0 });
       // Scrape the data
       const container = await page.evaluate(sel => {
-        return Array.from($(sel), e => e.outerHTML);
+        try {
+          // jquery selector
+          if (sel.startsWith('$')) {
+            return $(eval(sel))
+              .map((_, e) => e.outerHTML)
+              .get();
+          } else {
+            // vanilla js selector
+            return Array.from($(sel), e => e.outerHTML);
+          }
+        } catch (e) {
+          console.error('Error evaluating', sel, e);
+          return [''];
+        }
       }, containerSelector);
       // Store the scraped data in the pageData array
       pageData.push(...container);
