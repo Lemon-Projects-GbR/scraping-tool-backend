@@ -1,50 +1,96 @@
-import { load } from "cheerio";
+import { Cheerio, load } from 'cheerio';
 
-const scrapeData = async (
+async function scrapeData(
   data: string[],
-  scheme: Record<string, string | object>
-) => {
-  const scrapedData: any[] = [];
-  data.forEach(async (element) => {
-    // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
-
-    const evaluatedData = await evaluateDollarExpressions(scheme, element);
-    console.log(evaluatedData);
-    scrapedData.push(evaluatedData);
-    // console.log(evaluateDollarExpressions(scheme));
-  });
-
-  // iterateNestedProperties(scheme);
-  // console.log(scrapedData);
-  return scrapedData;
-};
-
-function evaluateDollarExpressions(
-  obj: Record<any, any> | string,
-  element: string
+  scheme: Record<string, string | object>,
 ) {
-  // If it's an object, we recursively handle each key-value pair
+  const scrapedData: Record<string, string | object>[] = [];
+  data.forEach(async element => {
+    const evaluatedData = evaluateQueriesInScheme(scheme, element);
+    if (Array.isArray(evaluatedData)) {
+      scrapedData.push(...evaluatedData);
+    } else {
+      scrapedData.push(evaluatedData);
+    }
+  });
+  return scrapedData;
+}
+
+// NOTE: I used to know how this function works. Oh well.
+function evaluateQueriesInScheme(
+  obj: Record<string, any>, //any because the recursive object could be of any depth
+  element: string,
+): any {
   const $ = load(element);
-  // console.log(eval('$(".EventTeams-styles-module-team-title").eq(0).text()'));
-  if (typeof obj === "object" && obj !== null) {
-    // const result: Record<any, any> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // console.log("before:", obj[key]);
-      obj[key] = evaluateDollarExpressions(value, element);
-      // console.log("after:", obj[key]);
+  for (const [key, value] of Object.entries(obj)) {
+    // If the value an object, recursively call the function to evaluate the nested object
+    if (typeof obj[key] !== 'string') {
+      evaluateQueriesInScheme(obj[key], element);
+    } else {
+      try {
+        let results: Cheerio<any>;
+        if (obj[key].startsWith('$')) {
+          // regex to match jQuery-style chained methods
+          const match = obj[key].match(/\$\((['"].+?['"])\)((\.\w+\(.*?\))*)/);
+
+          if (!match) {
+            throw new Error('Invalid jQuery selector');
+          } else {
+            const selector = match[1].slice(1, -1); // selector for the element
+            const methodChain = match[2]; // method chain (if any)
+
+            results = $(selector); // Select the element
+
+            const methodCalls = methodChain.match(/\.\w+\(.*?\)/g); // Match each method call
+            if (methodCalls) {
+              for (const call of methodCalls) {
+                const methodMatch = call.match(/\.(\w+)\((.*?)\)/);
+
+                if (methodMatch) {
+                  const method = methodMatch[1];
+                  const arg = methodMatch[2]
+                    ? methodMatch[2].replace(/['"]/g, '')
+                    : null;
+
+                  // Ensure the method exists and is a function
+                  if (
+                    typeof results[method as keyof typeof results] ===
+                    'function'
+                  ) {
+                    const methodFunction = results[
+                      method as keyof typeof results
+                    ] as unknown as Function;
+                    results = arg
+                      ? methodFunction.call(results, arg)
+                      : methodFunction.call(results);
+                  } else {
+                    throw new Error(`Unsupported method: ${method}`);
+                  }
+                }
+
+                obj[key] =
+                  results instanceof Object && 'toArray' in results
+                    ? results.toArray().map(e => $(e).text()) // Array of elements
+                    : results; // Single result
+              }
+            }
+          }
+        } else {
+          results = $(obj[key]);
+        }
+
+        if (results && typeof results === 'object' && 'toArray' in results) {
+          obj[key] = results.toArray().map(e => $(e).text());
+        } else {
+          obj[key] = results;
+        }
+      } catch (e: any) {
+        console.error('Error evaluating:', obj[key], e);
+        const errorMsg = e.message ? e.message : 'Unknown Error';
+        return { errorAttr: obj, errorMsg: errorMsg };
+      }
     }
-    return obj;
   }
-  // If it's a string starting with a `$`, evaluate it using eval
-  if (typeof obj === "string" && obj.startsWith("$")) {
-    try {
-      return eval(obj);
-    } catch (e) {
-      console.error("Error evaluating:", obj, e);
-      return null;
-    }
-  }
-  // Return the value as is if it's not something to evaluate
   return obj;
 }
 
