@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 import ollama from 'ollama';
 import { get_encoding, encoding_for_model } from 'tiktoken';
 
-import prepareHTMLContainer from '../utils/prepareHTMLContainer';
+import prepareHTMLContainer from '../utils/getContainerContent';
 
 const getDocument = async (
   url: string,

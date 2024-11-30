@@ -2,7 +2,12 @@
 import startCluster from './browserCluster';
 
 /* TODO: if no selector is provided return the whole html */
-async function prepareHTMLContainer(
+/**
+ * This function scrapes the content of a container from a list of URLs. The container is defined by a selector.
+ * @param urls - List of URLs to scrape
+ * @param containerSelector - Selector for the container to scrape. Can be a jQuery or vanilla JS selector
+ */
+async function getContainerContent(
   urls: string[],
   containerSelector: string,
 ): Promise<string[]> {
@@ -64,4 +69,4 @@ async function prepareHTMLContainer(
   }
 }
 
-export default prepareHTMLContainer;
+export default getContainerContent;

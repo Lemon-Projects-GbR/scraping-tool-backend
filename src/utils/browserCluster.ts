@@ -1,5 +1,8 @@
 import { Cluster } from 'puppeteer-cluster';
 
+/**
+ * This function starts a cluster of puppeteer instances. The cluster is used to scrape multiple pages at the same time.
+ */
 const startCluster = async (): Promise<Cluster | undefined> => {
   let cluster;
   try {
@@ -8,7 +11,7 @@ const startCluster = async (): Promise<Cluster | undefined> => {
       concurrency: Cluster.CONCURRENCY_PAGE,
       maxConcurrency: 2,
       puppeteerOptions: {
-        headless: true,
+        headless: false,
         args: [
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
