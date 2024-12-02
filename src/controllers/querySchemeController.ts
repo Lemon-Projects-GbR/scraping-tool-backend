@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import getContainerContent from '../utils/getContainerContent';
 import querySchemeService from '../services/querySchemeService';
+import { ContainerContent } from '../types/types';
 
 const querySchemeController = async (req: Request, res: Response) => {
   const reqBody: {
@@ -17,20 +18,20 @@ const querySchemeController = async (req: Request, res: Response) => {
     reqBody.baseContainer = 'body';
   }
 
-  console.log('Request Body:', reqBody);
-
-  const data: string[] = await getContainerContent(
+  const containerContentList: ContainerContent[] = await getContainerContent(
     reqBody.urls,
     reqBody.baseContainer,
   );
 
-  console.log('Data:', data);
+  const response = containerContentList.map(async container => {
+    return await querySchemeService(container.data, reqBody.scheme);
+  });
 
-  const response: Record<string, string | object>[] = await querySchemeService(
-    data,
-    reqBody.scheme,
-  );
-  res.send(response);
+  const resolvedResponses = await Promise.all(response);
+
+  console.log('Data:', resolvedResponses);
+
+  res.send(resolvedResponses);
 };
 
 export default querySchemeController;

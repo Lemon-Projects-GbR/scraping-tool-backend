@@ -1,4 +1,4 @@
-import { load } from 'cheerio';
+/* import { load } from 'cheerio';
 import ollama from 'ollama';
 import { get_encoding, encoding_for_model } from 'tiktoken';
 
@@ -50,3 +50,4 @@ export const aiSearchHandler = async (
   promptDocumentForData(cleanedDoc, 'Get the name of all products on the page');
   return cleanedDoc;
 };
+ */

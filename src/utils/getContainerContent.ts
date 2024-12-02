@@ -1,23 +1,26 @@
 // import { Page } from 'puppeteer';
 import startCluster from './browserCluster';
 
-/* TODO: if no selector is provided return the whole html */
 /**
- * This function scrapes the content of a container from a list of URLs. The container is defined by a selector.
- * @param urls - List of URLs to scrape
- * @param containerSelector - Selector for the container to scrape. Can be a jQuery or vanilla JS selector
+ * Get the content of all containers specified by the selector in the URLs provided.
+ * @param urls
+ * @param containerSelector
+ * @returns List of objects containing the URL and the data scraped from the container.
  */
 async function getContainerContent(
   urls: string[],
   containerSelector: string,
-): Promise<string[]> {
+): Promise<{ url: string; data: string[] }[]> {
   try {
     const cluster = await startCluster();
 
     if (!cluster) throw new Error('Cluster could not be started');
 
-    let pageData: string[] = [];
+    let pageDataObj = [] as { url: string; data: string[] }[];
+    // let pageData: string[] = [];
 
+    //TODO: Error handling
+    //TODO: Add support for custom attributes
     //NOTE: Define here what the Browser instance should do
     await cluster.task(async ({ page, data: { url, containerSelector } }) => {
       // Set User Agent
@@ -31,7 +34,7 @@ async function getContainerContent(
       await page.addScriptTag({
         url: 'https://code.jquery.com/jquery-3.3.1.slim.min.js',
       });
-      await page.waitForFunction(`!!${containerSelector}`, { timeout: 0 });
+      await page.waitForSelector(containerSelector, { timeout: 30000 });
       // Scrape the data
       const container = await page.evaluate(sel => {
         try {
@@ -50,7 +53,7 @@ async function getContainerContent(
         }
       }, containerSelector);
       // Store the scraped data in the pageData array
-      pageData.push(...container);
+      pageDataObj.push({ url: url, data: container });
 
       await page.close();
     });
@@ -63,9 +66,9 @@ async function getContainerContent(
     console.log('Closing Cluster...');
     await cluster.close();
 
-    return pageData;
+    return pageDataObj;
   } catch (e) {
-    return [''];
+    throw new Error('Error getting container content: ' + e);
   }
 }
 
